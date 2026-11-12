@@ -132,4 +132,27 @@ const io=new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.targ
 function go(){const h=(location.hash||"#home").slice(1);const id=document.getElementById(h)?h:"home";document.querySelectorAll(".page").forEach(p=>p.classList.toggle("on",p.id==id));nav.querySelectorAll("a").forEach(a=>a.classList.toggle("on",a.dataset.p==id));nav.classList.remove("o");mb.setAttribute("aria-expanded",false);if(!bk&&st[st.length-1]!=id)st.push(id);bk=0;scrollTo(0,0);document.querySelectorAll("#"+id+" .rv").forEach(e=>io.observe(e));
 if(id=="home")document.querySelectorAll("[data-n]").forEach(el=>{const t=+el.dataset.n;let i=0;const s=setInterval(()=>{i++;el.textContent=i;if(i>=t)clearInterval(s)},90)})}
 addEventListener("hashchange",go);go();
-</script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script id="SPAN_SUPABASE_PUBLIC_CONTENT">
+/* SPAN_SUPABASE_PUBLIC_CONTENT: public, published content only. The original Claude design and navigation remain unchanged. */
+(function(){
+ const client=window.supabase.createClient("https://rtbohylgtwcenswdybuv.supabase.co","sb_publishable_k8dnfw0agLr6C4gOiyWd7w_4D8650-G");
+ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const rows=m=>client.from("site_content").select("*").eq("module",m).eq("published",true).order("sort_order").order("created_at",{ascending:false});
+ const rowHTML=(icon,r,detail=true)=>'<div class="row"><div class="ic">'+icon+'</div><div><b>'+esc(r.title)+'</b><span>'+esc(r.date_label)+'</span>'+(detail&&r.body?'<p style="margin:6px 0 0">'+esc(r.body)+'</p>':'')+(r.url?'<p><a href="'+esc(r.url)+'" target="_blank" rel="noopener">Open link →</a></p>':'')+(r.image_url?'<p><img src="'+esc(r.image_url)+'" alt="" style="max-width:min(100%,420px);border-radius:14px"></p>':'')+'</div></div>';
+ async function load(m){const {data,error}=await rows(m);if(error){console.warn("SPAN CMS",m,error.message);return null}return data||[]}
+ async function render(){
+  const [ann,events,news,loci,execs,resources,tickets,settings]=await Promise.all(["announcements","events","news","loci","executives","academic_resources","ticket_settings","website_settings"].map(load));
+  if(ann?.length){const html=ann.map(r=>rowHTML("📢",r)).join("");const h=document.getElementById("annHome"),a=document.getElementById("annAll");if(h)h.innerHTML=html+'<a href="#announcements">View all →</a>';if(a)a.innerHTML=html}
+  if(events?.length){const e=document.getElementById("evAll");if(e)e.innerHTML=events.map(r=>'<div class="row"><div class="dt">'+esc(r.date_label||"DATE")+'</div><div><b>'+esc(r.title)+'</b><span>'+esc(r.body)+'</span>'+(r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener">More information →</a>':'')+(r.image_url?'<p><img src="'+esc(r.image_url)+'" alt="" style="max-width:min(100%,420px);border-radius:14px"></p>':'')+'</div></div>').join("")}
+  if(news?.length){const n=document.getElementById("newsAll");if(n)n.innerHTML=news.map(r=>rowHTML("🗞️",r)).join("")}
+  if(loci?.length){const l=document.getElementById("lociLink");if(l)l.innerHTML=loci.map(r=>'<div>'+ (r.url?'<a href="'+esc(r.url)+'" target="_blank" rel="noopener"><b>'+esc(r.title)+' →</b></a>':'<b>'+esc(r.title)+'</b>')+(r.date_label?'<span> · '+esc(r.date_label)+'</span>':'')+(r.body?'<p>'+esc(r.body)+'</p>':'')+'</div>').join("")}
+  if(resources?.length){const el=document.getElementById("res");if(el)el.innerHTML=resources.map(r=>'<a class="c" href="'+esc(r.url||"#")+'" '+(r.url?'target="_blank" rel="noopener"':'')+'><h3>'+esc(r.title)+'</h3><p>'+esc(r.body)+'</p></a>').join("")}
+  if(execs?.length){const card=r=>'<div class="c ex h rv"><img src="'+esc(r.image_url||"")+'" alt="'+esc(r.title)+'"><h3>'+esc(r.title)+'</h3><span class="rl">'+esc(r.extra?.role||"Executive")+'</span>'+(r.extra?.phone?'<br><a href="tel:'+esc(r.extra.phone)+'">📞 '+esc(r.extra.phone)+'</a>':'')+'</div>';const top=document.getElementById("exTop"),rest=document.getElementById("ex");if(top)top.innerHTML=execs.slice(0,2).map(card).join("");if(rest)rest.innerHTML=execs.slice(2).map(card).join("")}
+  if(tickets?.length){const t=tickets[0],x=t.extra||{};const acct=document.getElementById("acctBox");if(acct)acct.innerHTML=x.account_number?('Account Name: <b>'+esc(x.account_name)+'</b><br>Bank: <b>'+esc(x.bank)+'</b><br>Account Number: <b>'+esc(x.account_number)+'</b>'):'<b>Ticket payment account to be announced.</b>';const go=document.getElementById("tkGo");if(go){go.disabled=!x.account_number;go.onclick=()=>{const name=document.getElementById("tkName")?.value.trim();if(!name)return document.getElementById("tkName")?.focus();const wa=String(x.whatsapp||"").replace(/\D/g,"");if(!wa)return alert("Ticket WhatsApp contact has not been configured.");const msg="Hello SPAN UNIBEN, I would like to request a ticket. Event: "+(document.getElementById("tkEv")?.selectedOptions[0]?.text||"Event")+". Name: "+name+". I will send my payment proof here.";window.open("https://wa.me/"+wa+"?text="+encodeURIComponent(msg),"_blank")}}}
+  if(settings?.length){const x=settings[0].extra||{};if(x.email){document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{a.href="mailto:"+x.email;a.textContent=x.email})}}
+ }
+ if(window.supabase)render().catch(e=>console.warn("SPAN CMS load",e));
+})();
+</script>
+</body></html>
