@@ -15,8 +15,8 @@
 <input type="hidden" id="recordId">
 <div class="field"><label>Section</label><select id="module"></select></div>
 <div class="field"><label>Title / name</label><input id="title" required maxlength="180" placeholder="Enter a title"></div>
-<div class="field"><label>Date / label</label><input id="date" placeholder="e.g. 16–19 November 2026"></div>
-<div class="field"><label>Details / description</label><textarea id="body" placeholder="Write the announcement or details"></textarea></div>
+<div class="field"><label id="dateLabel">Date / label</label><input id="date" placeholder="e.g. 16–19 November 2026"></div>
+<div class="field"><label id="bodyLabel">Details / description</label><textarea id="body" placeholder="Write the announcement or details"></textarea></div>
 <div class="field"><label>Website / Google Drive / WhatsApp link</label><input id="url" type="url" placeholder="https://..."></div>
 <div class="field"><label>Image URL (optional)</label><input id="image" type="url" placeholder="Paste an image URL or upload below"></div>
 <div class="field"><label>Or upload an image (JPG, PNG, WebP; max 5 MB)</label><input id="upload" type="file" accept="image/png,image/jpeg,image/webp"></div>
@@ -26,7 +26,7 @@
 </form></section>
 <section class="panel" style="margin:0"><div class="topline"><h2 id="listTitle" style="margin:0">Announcements</h2><button id="refresh" class="ghost">Refresh</button></div><div id="list" style="margin-top:10px"></div></section>
 </div>
-<div class="panel" style="margin-top:16px"><b>Administrator help</b><p class="muted small">Use Announcements for formal notices, Events for dates and venues, News for quick updates, The Loci for editorial editions, Executives for officer profiles, Academic resources for Google Drive links, Ticket settings for payment instructions, and Website settings for contact/social information. Do not publish bank details until approved by the Finance Committee and Association leadership.</p></div>
+<div class="panel" style="margin-top:16px"><b>Administrator help</b><p class="muted small">Use Course advisers to add or update each level’s adviser: Title/name = adviser full name, Level = 100L–500L, Details = academic session (e.g. 2026/2027), and upload their photograph. Publish the record to show it on the Faculty page. Replace or unpublish old records when advisers change. Other sections work as before. Do not publish bank details until approved by the Finance Committee and Association leadership.</p></div>
 </section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -34,14 +34,14 @@ const SUPABASE_URL="https://rtbohylgtwcenswdybuv.supabase.co";
 const SUPABASE_KEY="sb_publishable_k8dnfw0agLr6C4gOiyWd7w_4D8650-G";
 const ALLOWED_EMAIL="spanunibenchapter1@gmail.com";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const modules=[["announcements","Announcements"],["events","Events"],["news","News"],["loci","The Loci"],["executives","Executives"],["academic_resources","Academic resources"],["ticket_settings","Tickets and payment settings"],["website_settings","Website settings"]];
+const modules=[["announcements","Announcements"],["events","Events"],["news","News"],["loci","The Loci"],["executives","Executives"],["academic_resources","Academic resources"],["ticket_settings","Tickets and payment settings"],["website_settings","Website settings"],["course_advisers","Course advisers"]];
 const $=id=>document.getElementById(id);let currentModule="announcements",records=[];
 function notice(el,msg,err=false){el.textContent=msg;el.classList.remove("hidden","err");if(err)el.classList.add("err")}
 function show(el,on){el.classList.toggle("hidden",!on)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 modules.forEach(([v,l])=>{$("module").add(new Option(l,v));$("tabs").insertAdjacentHTML("beforeend",'<button type="button" data-module="'+v+'">'+l+'</button>')});
-function selectModule(m){currentModule=m;$("module").value=m;$("listTitle").textContent=modules.find(x=>x[0]===m)[1];document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.module===m));resetForm();load()}
-$("tabs").onclick=e=>{if(e.target.dataset.module)selectModule(e.target.dataset.module)};
+function selectModule(m){currentModule=m;$("module").value=m;updateFieldHelp();$("listTitle").textContent=modules.find(x=>x[0]===m)[1];document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.module===m));resetForm();load()}
+$("tabs").onclick=e=>{if(e.target.dataset.module)selectModule(e.target.dataset.module)};\nfunction updateFieldHelp(){const c=$("module").value==="course_advisers";$("dateLabel").textContent=c?"Level (e.g. 100L, 200L, 300L, 400L, 500L)":"Date / label";$("bodyLabel").textContent=c?"Academic session (e.g. 2026/2027) and optional note":"Details / description";$("title").placeholder=c?"Course adviser full name":"Enter a title";$("image").previousElementSibling.textContent=c?"Adviser photograph (optional)":"Image URL (optional)";}\n$("module").onchange=updateFieldHelp;
 async function ensureAdmin(user){if(user.email?.toLowerCase()!==ALLOWED_EMAIL)return false;const {error}=await db.from("site_admins").upsert({user_id:user.id,email:user.email},{onConflict:"user_id",ignoreDuplicates:true});if(error)throw error;const {data}=await db.from("site_admins").select("user_id").eq("user_id",user.id).maybeSingle();return !!data}
 async function enter(user){if(user.email?.toLowerCase()!==ALLOWED_EMAIL){await db.auth.signOut();show($("auth"),true);show($("app"),false);notice($("msg"),"This email is not on the SPAN UNIBEN administrator allowlist.",true);return}
 try{if(!await ensureAdmin(user)){throw new Error("Your account is not authorized. Contact the SPAN website administrator.")}show($("auth"),false);show($("app"),true);show($("logout"),true);$("who").textContent=user.email;selectModule(currentModule)}catch(e){notice($("msg"),e.message,true);await db.auth.signOut()}}
