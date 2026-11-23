@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: supabase-heartbeat
@@ -47,3 +48,36 @@ jobs:
             exit 1
           fi
           echo "Supabase responded successfully. Returned a read-only published-content sample."
+
+      - name: Open or update an incident issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Supabase heartbeat failed";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `The scheduled Supabase read-only health check failed.\n\n- Workflow run: ${runUrl}\n- Event: ${context.eventName}\n- Ref: ${context.ref}\n\nCheck the run logs, Supabase project status, repository secrets, and the published-content SELECT policy. Do not paste secret values into this issue.`;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100
+            });
+            const existing = issues.find(issue => issue.title === title && !issue.pull_request);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+              core.notice(`Updated existing incident issue #${existing.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body
+              });
+              core.notice(`Created incident issue #${created.data.number}`);
+            }
